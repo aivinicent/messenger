@@ -1,6 +1,7 @@
 package dbclient
 
 import (
+	"messenger/internal/models"
 	"time"
 
 	"gorm.io/driver/postgres"
@@ -23,6 +24,15 @@ func AddMessage(body string) (err error) {
 	timestamp := time.Now()
 
 	tx := db.Exec("INSERT INTO messenger.messages VALUES (DEFAULT, ?, ?)", body, timestamp)
+	if tx.Error != nil {
+		err = tx.Error
+	}
+
+	return
+}
+
+func GetMessages() (messages []models.Message, err error) {
+	tx := db.Raw("SELECT * FROM messenger.messages").Scan(&messages)
 	if tx.Error != nil {
 		err = tx.Error
 	}

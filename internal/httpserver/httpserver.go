@@ -7,13 +7,8 @@ import (
 )
 
 func Start() {
-	http.HandleFunc("/ping", pingHandler)
 	http.HandleFunc("/messages", messagesHandler)
 	http.ListenAndServe(":8000", nil)
-}
-
-func pingHandler(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode("ok")
 }
 
 func messagesHandler(w http.ResponseWriter, r *http.Request) {
@@ -29,6 +24,16 @@ func messagesHandler(w http.ResponseWriter, r *http.Request) {
 		err = dbclient.AddMessage(body.Body)
 		if err != nil {
 			panic("httpserver.messagesHandler: dbclient.AddMessage: " + err.Error())
+		}
+	} else if r.Method == "GET" {
+		messages, err := dbclient.GetMessages()
+		if err != nil {
+			panic("httpserver.messagesHandler: dbclient.GetMessages: " + err.Error())
+		}
+
+		err = json.NewEncoder(w).Encode(messages)
+		if err != nil {
+			panic("httpserver.messagesHandler: json.NewEncoder.Encode: " + err.Error())
 		}
 	}
 }
