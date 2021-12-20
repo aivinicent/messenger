@@ -31,6 +31,9 @@ func messagesHandler(w http.ResponseWriter, r *http.Request) {
 			panic("httpserver.messagesHandler: dbclient.GetMessages: " + err.Error())
 		}
 
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
 		err = json.NewEncoder(w).Encode(messages)
 		if err != nil {
 			panic("httpserver.messagesHandler: json.NewEncoder.Encode: " + err.Error())

@@ -21,7 +21,7 @@ func New() {
 }
 
 func AddMessage(body string) (err error) {
-	timestamp := time.Now()
+	timestamp := time.Now().Unix()
 
 	tx := db.Exec("INSERT INTO messenger.messages VALUES (DEFAULT, ?, ?)", body, timestamp)
 	if tx.Error != nil {
@@ -32,10 +32,28 @@ func AddMessage(body string) (err error) {
 }
 
 func GetMessages() (messages []models.Message, err error) {
-	tx := db.Raw("SELECT * FROM messenger.messages").Scan(&messages)
+	var messagesInternal []messageInternal
+
+	tx := db.Raw("SELECT * FROM messenger.messages").Scan(&messagesInternal)
 	if tx.Error != nil {
 		err = tx.Error
 	}
 
+	for _, messageInternal := range messagesInternal {
+		message := models.Message{
+			Id:        messageInternal.Id,
+			Body:      messageInternal.Body,
+			Timestamp: time.Unix(messageInternal.Timestamp, 0).Format(time.RFC822),
+		}
+
+		messages = append(messages, message)
+	}
+
 	return
+}
+
+type messageInternal struct {
+	Id        int64
+	Body      string
+	Timestamp int64
 }

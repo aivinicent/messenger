@@ -1,7 +1,7 @@
 package models
 
 type Message struct {
-	Id        uint64
-	Body      string
-	Timestamp string
+	Id        int64  `json:"id"`
+	Body      string `json:"body"`
+	Timestamp string `json:"timestamp"`
 }
