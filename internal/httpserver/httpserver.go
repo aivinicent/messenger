@@ -25,6 +25,9 @@ func messagesHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			panic("httpserver.messagesHandler: dbclient.AddMessage: " + err.Error())
 		}
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	} else if r.Method == "GET" {
 		messages, err := dbclient.GetMessages()
 		if err != nil {
