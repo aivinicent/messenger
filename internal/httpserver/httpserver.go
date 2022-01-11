@@ -4,11 +4,15 @@ import (
 	"encoding/json"
 	"messenger/internal/dbclient"
 	"net/http"
+	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 func Start() {
 	http.HandleFunc("/messages", messagesHandler)
-	http.ListenAndServe(":8000", nil)
+	http.HandleFunc("/live-messages", liveMessagedHandler)
+	http.ListenAndServe(":8080", nil)
 }
 
 func messagesHandler(w http.ResponseWriter, r *http.Request) {
@@ -21,9 +25,13 @@ func messagesHandler(w http.ResponseWriter, r *http.Request) {
 			panic("httpserver.messagesHandler: decoder.Decode: " + err.Error())
 		}
 
-		err = dbclient.AddMessage(body.Body)
+		newMessageID, err := dbclient.AddMessage(body.Body)
 		if err != nil {
 			panic("httpserver.messagesHandler: dbclient.AddMessage: " + err.Error())
+		}
+
+		if lastNewMessageID < newMessageID {
+			lastNewMessageID = newMessageID
 		}
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -43,6 +51,38 @@ func messagesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+
+func liveMessagedHandler(w http.ResponseWriter, r *http.Request) {
+	upgrader := websocket.Upgrader{}
+
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		panic("httpserver.liveMessagedHandler: upgrader.Upgrade: " + err.Error())
+	}
+	defer c.Close()
+
+	lastSendedMessageID := lastNewMessageID
+
+	for {
+		if lastNewMessageID != lastSendedMessageID {
+			lastSendedMessageID++
+
+			message, err := dbclient.GetMessage(lastSendedMessageID)
+			if err != nil {
+				panic("httpserver.liveMessagedHandler: dbclient.GetMessage: " + err.Error())
+			}
+
+			err = c.WriteMessage(1, []byte(message.Body))
+			if err != nil {
+				panic("httpserver.liveMessagedHandler: c.WriteMessage: " + err.Error())
+			}
+		}
+
+		time.Sleep(1000)
+	}
+}
+
+var lastNewMessageID int64 = 0
 
 type messagesPost struct {
 	Body string

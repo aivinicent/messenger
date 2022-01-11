@@ -1,6 +1,7 @@
 package dbclient
 
 import (
+	"fmt"
 	"messenger/internal/models"
 	"time"
 
@@ -20,40 +21,67 @@ func New() {
 	}
 }
 
-func AddMessage(body string) (err error) {
-	timestamp := time.Now().Unix()
-
-	tx := db.Exec("INSERT INTO messenger.messages VALUES (DEFAULT, ?, ?)", body, timestamp)
-	if tx.Error != nil {
-		err = tx.Error
+func AddMessage(body string) (id int64, err error) {
+	message := messages{
+		Body:      body,
+		Timestamp: time.Now().Unix(),
 	}
+
+	err = db.Table("messenger.messages").Create(&message).Error
+	if err != nil {
+		return
+	}
+
+	id = message.ID
 
 	return
 }
 
-func GetMessages() (messages []models.Message, err error) {
-	var messagesInternal []messageInternal
+func GetMessages() (allMessages []models.Message, err error) {
+	var messagesInternal []messages
 
 	tx := db.Raw("SELECT * FROM messenger.messages").Scan(&messagesInternal)
 	if tx.Error != nil {
 		err = tx.Error
 	}
 
-	for _, messageInternal := range messagesInternal {
-		message := models.Message{
-			Id:        messageInternal.Id,
-			Body:      messageInternal.Body,
-			Timestamp: time.Unix(messageInternal.Timestamp, 0).Format(time.RFC822),
-		}
-
-		messages = append(messages, message)
+	for _, internalMessage := range messagesInternal {
+		allMessages = append(allMessages, convertInternalMessage(internalMessage))
 	}
 
 	return
 }
 
-type messageInternal struct {
-	Id        int64
+func GetMessage(id int64) (message models.Message, err error) {
+	var messagesInternal []messages
+
+	tx := db.Raw("SELECT * FROM messenger.messages").Where("id=?", id).Scan(&messagesInternal)
+	if tx.Error != nil {
+		err = tx.Error
+	}
+
+	if len(messagesInternal) == 0 {
+		err = fmt.Errorf("Not found")
+		return
+	}
+
+	message = convertInternalMessage(messagesInternal[0])
+
+	return
+}
+
+func convertInternalMessage(internalMessage messages) (message models.Message) {
+	message = models.Message{
+		Id:        internalMessage.ID,
+		Body:      internalMessage.Body,
+		Timestamp: time.Unix(internalMessage.Timestamp, 0).Format(time.RFC822),
+	}
+
+	return
+}
+
+type messages struct {
+	ID        int64
 	Body      string
 	Timestamp int64
 }
