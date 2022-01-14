@@ -55,7 +55,7 @@ func GetMessages() (allMessages []models.Message, err error) {
 func GetMessage(id int64) (message models.Message, err error) {
 	var messagesInternal []messages
 
-	tx := db.Raw("SELECT * FROM messenger.messages").Where("id=?", id).Scan(&messagesInternal)
+	tx := db.Raw("SELECT * FROM messenger.messages WHERE id = ?", id).Scan(&messagesInternal)
 	if tx.Error != nil {
 		err = tx.Error
 	}

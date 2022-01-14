@@ -30,8 +30,8 @@ func messagesHandler(w http.ResponseWriter, r *http.Request) {
 			panic("httpserver.messagesHandler: dbclient.AddMessage: " + err.Error())
 		}
 
-		if lastNewMessageID < newMessageID {
-			lastNewMessageID = newMessageID
+		if LastNewMessageID < newMessageID {
+			LastNewMessageID = newMessageID
 		}
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -61,10 +61,10 @@ func liveMessagedHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close()
 
-	lastSendedMessageID := lastNewMessageID
+	lastSendedMessageID := LastNewMessageID
 
 	for {
-		if lastNewMessageID != lastSendedMessageID {
+		if LastNewMessageID != lastSendedMessageID {
 			lastSendedMessageID++
 
 			message, err := dbclient.GetMessage(lastSendedMessageID)
@@ -82,7 +82,7 @@ func liveMessagedHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var lastNewMessageID int64 = 0
+var LastNewMessageID int64 = 0
 
 type messagesPost struct {
 	Body string
