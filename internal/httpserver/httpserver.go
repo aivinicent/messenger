@@ -10,6 +10,20 @@ import (
 )
 
 func Start() {
+	allMessages, err := dbclient.GetMessages()
+	if err != nil {
+		panic("app.Run: dbclient.GetMessages: " + err.Error())
+	}
+
+	lastMessageID := int64(0)
+	for _, message := range allMessages {
+		if message.Id > lastMessageID {
+			lastMessageID = message.Id
+		}
+	}
+
+	lastNewMessageID = lastMessageID
+
 	http.HandleFunc("/messages", messagesHandler)
 	http.HandleFunc("/live-messages", liveMessagedHandler)
 	http.ListenAndServe(":8080", nil)
@@ -30,8 +44,8 @@ func messagesHandler(w http.ResponseWriter, r *http.Request) {
 			panic("httpserver.messagesHandler: dbclient.AddMessage: " + err.Error())
 		}
 
-		if LastNewMessageID < newMessageID {
-			LastNewMessageID = newMessageID
+		if lastNewMessageID < newMessageID {
+			lastNewMessageID = newMessageID
 		}
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -61,10 +75,10 @@ func liveMessagedHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close()
 
-	lastSendedMessageID := LastNewMessageID
+	lastSendedMessageID := lastNewMessageID
 
 	for {
-		if LastNewMessageID != lastSendedMessageID {
+		if lastNewMessageID != lastSendedMessageID {
 			lastSendedMessageID++
 
 			message, err := dbclient.GetMessage(lastSendedMessageID)
@@ -82,7 +96,7 @@ func liveMessagedHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var LastNewMessageID int64 = 0
+var lastNewMessageID int64 = 0
 
 type messagesPost struct {
 	Body string
