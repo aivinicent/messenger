@@ -69,6 +69,7 @@ func messagesHandler(w http.ResponseWriter, r *http.Request) {
 func liveMessagedHandler(w http.ResponseWriter, r *http.Request) {
 	upgrader := websocket.Upgrader{}
 
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		panic("httpserver.liveMessagedHandler: upgrader.Upgrade: " + err.Error())
@@ -86,9 +87,9 @@ func liveMessagedHandler(w http.ResponseWriter, r *http.Request) {
 				panic("httpserver.liveMessagedHandler: dbclient.GetMessage: " + err.Error())
 			}
 
-			err = c.WriteMessage(1, []byte(message.Body))
+			err = c.WriteJSON(message)
 			if err != nil {
-				panic("httpserver.liveMessagedHandler: c.WriteMessage: " + err.Error())
+				panic("httpserver.liveMessagedHandler: c.WriteJSON: " + err.Error())
 			}
 		}
 
